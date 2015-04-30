@@ -11,18 +11,6 @@ span {
 	width: 16px;
 	height: 16px;
 }
-span.c1 {
-	background-color: blue;
-}
-span.c2 {
-	background-color: purple;
-}
-span.c3 {
-	background-color: orange;
-}
-span.c4 {
-	background-color: yellow;
-}
 </style>
 </head>
 <body>
@@ -31,26 +19,26 @@ span.c4 {
 	<input id="packageName" type="text"/>
 </p>
 <canvas width="640" height="480"></canvas>
-<p>
-	<span class="c1"></span> Draw
-	<span class="c2"></span> Prepare
-	<span class="c3"></span> Process
-	<span class="c4"></span> Execute
+<p id="legends">
 </p>
 <script src="zepto.min.js"></script>
 <script>
 (function(){
 	var packageNamePattern = /^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)*$/
-	var url = 'http://localhost:8000/'
+	var url = 'http://localhost:8002/'
 	var interval = 200
 	var width = 640
 	var height = 480
 	var threshold = 16
 	var dx = 5
 	var dy = 10
-	var colors = ["green", "blue", "purple", "orange", "yellow"]
-	var begin = "Draw	Prepare	Process	Execute"
-	var end = "\r\r\n\r\r\n"
+	var colors = {
+		"threshold": "green",
+		"Draw": "blue",
+		"Prepare": "purple",
+		"Process": "orange",
+		"Execute": "yellow"
+	}
 	var delim = "\r\r\n"
 	var n = 128
 	var pos = 0
@@ -62,22 +50,32 @@ span.c4 {
 	var ctx = canvas.getContext("2d")
 
 	var handler = function(data){
-		var b = data.indexOf(begin) + begin.length
-		var e = data.indexOf(end, b)
-		if (b == e) {
-			return;
+		var b = data.indexOf(delim + "\tDraw\t")
+		if (b == -1) {
+			return
+		}
+		b += delim.length
+		var e = data.indexOf(delim + delim, b)
+		if (data.indexOf(delim, b) == e) {
+			return
 		}
 
 		var x = data.substring(b, e).split(delim)
+		var titles = x[0].split('\t')
+		var html = ''
+		for (var i = 1, m = titles.length; i < m; i++) {
+			html += '<span style="background-color:' + colors[titles[i]] + '"></span> ' + titles[i] + ' '
+		}
+		$('#legends').html(html)
 
 		for (var i = 1, m = x.length; i < m; i++) {
 			var y = x[i].split('\t')
 			var t = 0
 			var x1 = dx * pos
 			var y1 = height
-			for (var j = 1; j < dx; j++) {
+			for (var j = 1; j < y.length; j++) {
 				y[j] = parseFloat(y[j])
-				ctx.fillStyle = colors[j]
+				ctx.fillStyle = colors[titles[j]]
 				var g = dy * y[j]
 				ctx.fillRect(x1, y1, dx, -g)
 				t += y[j]
@@ -95,13 +93,13 @@ span.c4 {
 			var x1 = dx * pos
 			var y1 = height
 			var g = dy * hist[pos]
-			ctx.fillStyle = colors[0]
+			ctx.fillStyle = colors['threshold']
 			ctx.fillRect(x1, y1, dx, -g)
 			y1 -= g
 			ctx.clearRect(x1, y1, dx, -y1)
 		}
 
-		ctx.fillStyle = colors[0]
+		ctx.fillStyle = colors['threshold']
 		ctx.fillRect(0, height - dy * threshold, width, -1)
 		ctx.fillText(threshold + "ms", 0, height - dy * threshold - 4)
 	}

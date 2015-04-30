@@ -3,7 +3,12 @@ import subprocess
 import re
 
 
+__version__ = "0.1"
+
+
 class MyRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+	server_version = "apgr/" + __version__
+	protocol_version = "HTTP/1.1"
 	package_name_pattern=re.compile(r'^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)*$')
 
 	def do_GET(self):
@@ -13,20 +18,27 @@ class MyRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 			self.send_error(404)
 
 	def index(self, package_name):
+		data = subprocess.check_output(['adb', 'shell', 'dumpsys', 'gfxinfo', package_name])
+
 		self.send_response(200)
+		self.send_header('Connection', 'keep-alive')
 		self.send_header('Access-Control-Allow-Origin', '*')
 		self.send_header('Content-Type', 'text/html')
+		self.send_header('Content-Length', len(data))
 		self.end_headers()
-		data = subprocess.check_output(['adb', 'shell', 'dumpsys', 'gfxinfo', package_name])
+
 		self.wfile.write(data)
 
 
-def run(server_class=BaseHTTPServer.HTTPServer,
-        handler_class=BaseHTTPServer.BaseHTTPRequestHandler):
-    server_address = ('', 8000)
-    httpd = server_class(server_address, handler_class)
+def test(HandlerClass = MyRequestHandler,
+		 ServerClass = BaseHTTPServer.HTTPServer):
+    server_address = ('', 8002)
+    httpd = ServerClass(server_address, HandlerClass)
+
+    sa = httpd.socket.getsockname()
+    print "Serving HTTP on", sa[0], "port", sa[1], "..."
     httpd.serve_forever()
 
 
 if __name__ == '__main__':
-	run(BaseHTTPServer.HTTPServer, MyRequestHandler)
+	test()
