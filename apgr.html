@@ -50,7 +50,7 @@ span {
 	var ctx = canvas.getContext("2d")
 
 	var handler = function(data){
-		var b = data.indexOf(delim + "\tDraw\t")
+		var b = data.lastIndexOf(delim + "\tDraw\t")
 		if (b == -1) {
 			return
 		}
